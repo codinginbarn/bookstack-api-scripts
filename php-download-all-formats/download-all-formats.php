@@ -1,6 +1,7 @@
 <?php
-ini_set('memory_limit', '256M');
-ini_set('max_execution_time', 300);
+ini_set("memory_limit", "256M");
+ini_set("max_execution_time", 300);
+
 // https://github.com/codinginbarn/bookstack-api-scripts
 ?><!DOCTYPE html>
 <html>
@@ -112,202 +113,267 @@ ini_set('max_execution_time', 300);
         </form>
 
         <?php
-			function createFormatDirectory($format) {
-				$formatDirs = [
-					'pdf' => __DIR__ . '/pdf',
-					'html' => __DIR__ . '/html',
-					'txt' => __DIR__ . '/text',
-					'markdown' => __DIR__ . '/markdown'
-				];
-				
-				$dir = $formatDirs[$format];
-				if (!file_exists($dir)) {
-					mkdir($dir, 0755, true);
-				}
-				return $dir;
-			}
+        function createFormatDirectory($format)
+        {
+            $formatDirs = [
+                "pdf" => __DIR__ . "/pdf",
+                "html" => __DIR__ . "/html",
+                "txt" => __DIR__ . "/text",
+                "markdown" => __DIR__ . "/markdown",
+            ];
 
-			function downloadBook($id, $name, $token_id, $token_secret, $api_url, $format) {
-				$downloadDir = createFormatDirectory($format);
-				$authorization = "Token {$token_id}:{$token_secret}";
-				$filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
-				
-				switch ($format) {
-					case 'pdf':
-						$filename .= '.pdf';
-						$exportFormat = 'pdf';
-						break;
-					case 'html':
-						$filename .= '.html';
-						$exportFormat = 'html';
-						break;
-					case 'txt':
-						$filename .= '.txt';
-						$exportFormat = 'plaintext';
-						break;
-					case 'markdown':
-						$filename .= '.md';
-						$exportFormat = 'markdown';
-						break;
-				}
-				
-				$filepath = $downloadDir . '/' . $filename;
-				
-				$baseUrl = preg_replace('/\/api\/books.*$/', '', $api_url);
-				$downloadUrl = $baseUrl . "/api/books/{$id}/export/" . $exportFormat;
-				
-				$curl = curl_init();
-				curl_setopt_array($curl, array(
-					CURLOPT_URL => $downloadUrl,
-					CURLOPT_RETURNTRANSFER => true,
-					CURLOPT_HTTPGET => true,
-					CURLOPT_HTTPHEADER => array(
-						"Authorization: {$authorization}",
-						"Accept-Encoding: gzip, deflate"
-					),
-					CURLOPT_ENCODING => "",
-					CURLOPT_TIMEOUT => 60,
-					CURLOPT_FOLLOWLOCATION => true,
-					CURLOPT_BUFFERSIZE => 128000
-				));
-				
-				$response = curl_exec($curl);
-				$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-				curl_close($curl);
-				
-				if ($httpCode === 200) {
-					file_put_contents($filepath, $response);
-					return true;
-				}
-				return false;
-			}
+            $dir = $formatDirs[$format];
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            return $dir;
+        }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['action']) && $_POST['action'] === 'download_books' && !empty($_POST['selected_books'])) {
+        function downloadBook(
+            $id,
+            $name,
+            $token_id,
+            $token_secret,
+            $api_url,
+            $format
+        ) {
+            $downloadDir = createFormatDirectory($format);
+            $authorization = "Token {$token_id}:{$token_secret}";
+            $filename = preg_replace("/[^a-zA-Z0-9_-]/", "_", $name);
+
+            switch ($format) {
+                case "pdf":
+                    $filename .= ".pdf";
+                    $exportFormat = "pdf";
+                    break;
+                case "html":
+                    $filename .= ".html";
+                    $exportFormat = "html";
+                    break;
+                case "txt":
+                    $filename .= ".txt";
+                    $exportFormat = "plaintext";
+                    break;
+                case "markdown":
+                    $filename .= ".md";
+                    $exportFormat = "markdown";
+                    break;
+            }
+
+            $filepath = $downloadDir . "/" . $filename;
+
+            $baseUrl = preg_replace('/\/api\/books.*$/', "", $api_url);
+            $downloadUrl =
+                $baseUrl . "/api/books/{$id}/export/" . $exportFormat;
+
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $downloadUrl,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPGET => true,
+                CURLOPT_HTTPHEADER => [
+                    "Authorization: {$authorization}",
+                    "Accept-Encoding: gzip, deflate",
+                ],
+                CURLOPT_ENCODING => "",
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_BUFFERSIZE => 128000,
+            ]);
+
+            $response = curl_exec($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            curl_close($curl);
+
+            if ($httpCode === 200) {
+                file_put_contents($filepath, $response);
+                return true;
+            }
+            return false;
+        }
+
+        if ($_SERVER["REQUEST_METHOD"] === "POST") {
+            if (
+                isset($_POST["action"]) &&
+                $_POST["action"] === "download_books" &&
+                !empty($_POST["selected_books"])
+            ) {
                 $success = [];
                 $errors = [];
-                $format = $_POST['format'];
-                
-                $batches = array_chunk($_POST['selected_books'], 5);
-                
+                $format = $_POST["format"];
+
+                $batches = array_chunk($_POST["selected_books"], 5);
+
                 foreach ($batches as $batch) {
                     foreach ($batch as $bookId) {
-                        if (isset($_POST['book_names'][$bookId])) {
-                            $bookName = $_POST['book_names'][$bookId];
-                            if (downloadBook($bookId, $bookName, $_POST['token_id'], $_POST['token_secret'], $_POST['api_url'], $format)) {
-                                $success[] = "Successfully downloaded: " . htmlspecialchars($bookName) . " in " . strtoupper($format) . " format";
+                        if (isset($_POST["book_names"][$bookId])) {
+                            $bookName = $_POST["book_names"][$bookId];
+                            if (
+                                downloadBook(
+                                    $bookId,
+                                    $bookName,
+                                    $_POST["token_id"],
+                                    $_POST["token_secret"],
+                                    $_POST["api_url"],
+                                    $format
+                                )
+                            ) {
+                                $success[] =
+                                    "Successfully downloaded: " .
+                                    htmlspecialchars($bookName) .
+                                    " in " .
+                                    strtoupper($format) .
+                                    " format";
                             } else {
-                                $errors[] = "Failed to download: " . htmlspecialchars($bookName);
+                                $errors[] =
+                                    "Failed to download: " .
+                                    htmlspecialchars($bookName);
                             }
                         }
                     }
                     usleep(500000);
                 }
-                
+
                 clearstatcache();
-                
+
                 if (!empty($success)) {
                     echo '<div class="message success">';
-                    foreach ($success as $msg) echo $msg . '<br>';
-                    echo '</div>';
+                    foreach ($success as $msg) {
+                        echo $msg . "<br>";
+                    }
+                    echo "</div>";
                 }
-                
+
                 if (!empty($errors)) {
                     echo '<div class="message error">';
-                    foreach ($errors as $msg) echo $msg . '<br>';
-                    echo '</div>';
+                    foreach ($errors as $msg) {
+                        echo $msg . "<br>";
+                    }
+                    echo "</div>";
                 }
             }
 
-            $api_url = $_POST['api_url'];
-            $token_id = $_POST['token_id'];
-            $token_secret = $_POST['token_secret'];
+            $api_url = $_POST["api_url"];
+            $token_id = $_POST["token_id"];
+            $token_secret = $_POST["token_secret"];
             $authorization = "Token {$token_id}:{$token_secret}";
-            
+
             $curl = curl_init();
-            curl_setopt_array($curl, array(
+            curl_setopt_array($curl, [
                 CURLOPT_URL => $api_url,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HTTPGET => true,
-                CURLOPT_HTTPHEADER => array(
+                CURLOPT_HTTPHEADER => [
                     "Authorization: {$authorization}",
-                    "Accept-Encoding: gzip, deflate"
-                ),
+                    "Accept-Encoding: gzip, deflate",
+                ],
                 CURLOPT_ENCODING => "",
-                CURLOPT_TIMEOUT => 30
-            ));
-            
+                CURLOPT_TIMEOUT => 30,
+            ]);
+
             $response = curl_exec($curl);
-            
+
             if (curl_errno($curl)) {
-                echo '<div style="margin-top: 20px; color: red;">Error: ' . curl_error($curl) . '</div>';
+                echo '<div style="margin-top: 20px; color: red;">Error: ' .
+                    curl_error($curl) .
+                    "</div>";
             } else {
                 $data = json_decode($response, true);
                 if ($data) {
                     echo '<form method="POST" class="download-form">';
                     echo '<input type="hidden" name="action" value="download_books">';
-                    echo '<input type="hidden" name="api_url" value="' . htmlspecialchars($api_url) . '">';
-                    echo '<input type="hidden" name="token_id" value="' . htmlspecialchars($token_id) . '">';
-                    echo '<input type="hidden" name="token_secret" value="' . htmlspecialchars($token_secret) . '">';
-                    
+                    echo '<input type="hidden" name="api_url" value="' .
+                        htmlspecialchars($api_url) .
+                        '">';
+                    echo '<input type="hidden" name="token_id" value="' .
+                        htmlspecialchars($token_id) .
+                        '">';
+                    echo '<input type="hidden" name="token_secret" value="' .
+                        htmlspecialchars($token_secret) .
+                        '">';
+
                     echo '<div class="format-select">';
                     echo '<label><input type="radio" name="format" value="pdf" checked> PDF</label>';
                     echo '<label><input type="radio" name="format" value="html"> HTML</label>';
                     echo '<label><input type="radio" name="format" value="txt"> Plain Text</label>';
                     echo '<label><input type="radio" name="format" value="markdown"> Markdown</label>';
-                    echo '</div>';
-                    
+                    echo "</div>";
+
                     echo '<div class="book-grid">';
-                    
-                    $items = isset($data['data']) ? $data['data'] : array($data);
-                    
+
+                    $items = isset($data["data"]) ? $data["data"] : [$data];
+
                     foreach ($items as $item) {
                         echo '<div class="book-card">';
-                        
+
                         echo '<div class="book-select">';
-                        echo '<input type="checkbox" name="selected_books[]" value="' . $item['id'] . '" id="book_' . $item['id'] . '">';
-                        echo '<input type="hidden" name="book_names[' . $item['id'] . ']" value="' . htmlspecialchars($item['name']) . '">';
-                        echo '</div>';
-                        
-                        if (isset($item['cover']) && is_array($item['cover']) && isset($item['cover']['url'])) {
-                            echo '<img src="' . htmlspecialchars($item['cover']['url']) . '" class="book-cover" alt="Book cover">';
+                        echo '<input type="checkbox" name="selected_books[]" value="' .
+                            $item["id"] .
+                            '" id="book_' .
+                            $item["id"] .
+                            '">';
+                        echo '<input type="hidden" name="book_names[' .
+                            $item["id"] .
+                            ']" value="' .
+                            htmlspecialchars($item["name"]) .
+                            '">';
+                        echo "</div>";
+
+                        if (
+                            isset($item["cover"]) &&
+                            is_array($item["cover"]) &&
+                            isset($item["cover"]["url"])
+                        ) {
+                            echo '<img src="' .
+                                htmlspecialchars($item["cover"]["url"]) .
+                                '" class="book-cover" alt="Book cover">';
                         } else {
                             echo '<div class="book-cover" style="background: #eee; display: flex; align-items: center; justify-content: center;">No Cover</div>';
                         }
-                        
-                        if (isset($item['name'])) {
-                            echo '<div class="book-title">' . htmlspecialchars($item['name']) . '</div>';
+
+                        if (isset($item["name"])) {
+                            echo '<div class="book-title">' .
+                                htmlspecialchars($item["name"]) .
+                                "</div>";
                         }
-                        
-                        if (isset($item['description'])) {
-                            echo '<div class="book-description">' . htmlspecialchars($item['description']) . '</div>';
+
+                        if (isset($item["description"])) {
+                            echo '<div class="book-description">' .
+                                htmlspecialchars($item["description"]) .
+                                "</div>";
                         }
-                        
+
                         echo '<div class="book-meta">';
-                        if (isset($item['created_at'])) {
-                            echo 'Created: ' . date('M d, Y', strtotime($item['created_at'])) . '<br>';
+                        if (isset($item["created_at"])) {
+                            echo "Created: " .
+                                date("M d, Y", strtotime($item["created_at"])) .
+                                "<br>";
                         }
-                        if (isset($item['updated_at'])) {
-                            echo 'Updated: ' . date('M d, Y', strtotime($item['updated_at'])) . '<br>';
+                        if (isset($item["updated_at"])) {
+                            echo "Updated: " .
+                                date("M d, Y", strtotime($item["updated_at"])) .
+                                "<br>";
                         }
-                        if (isset($item['id'])) {
-                            echo 'ID: ' . htmlspecialchars($item['id']);
+                        if (isset($item["id"])) {
+                            echo "ID: " . htmlspecialchars($item["id"]);
                         }
-                        echo '</div>';
-                        
-                        echo '</div>';
+                        echo "</div>";
+
+                        echo "</div>";
                     }
-                    echo '</div>';
-                    
+                    echo "</div>";
+
                     echo '<button type="submit">Download Selected Books</button>';
-                    echo '</form>';
-                    
-                    if (isset($data['total'])) {
-                        echo '<div style="margin-top: 20px;">Total Items: ' . $data['total'] . '</div>';
+                    echo "</form>";
+
+                    if (isset($data["total"])) {
+                        echo '<div style="margin-top: 20px;">Total Items: ' .
+                            $data["total"] .
+                            "</div>";
                     }
                 } else {
                     echo '<div style="margin-top: 20px; color: red;">Invalid JSON response received</div>';
-                    echo '<pre>' . htmlspecialchars($response) . '</pre>';
+                    echo "<pre>" . htmlspecialchars($response) . "</pre>";
                 }
             }
             curl_close($curl);
